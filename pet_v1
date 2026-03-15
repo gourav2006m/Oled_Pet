@@ -1,0 +1,123 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define TOUCH_PIN 7
+
+bool currentPet = 0;   // 0 = Cat, 1 = Bunny
+bool lastTouchState = HIGH;
+
+unsigned long lastBlink = 0;
+bool eyesClosed = false;
+
+void setup() {
+  pinMode(TOUCH_PIN, INPUT_PULLUP);
+  Serial.begin(9600);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    while (true);
+  }
+}
+
+void loop() {
+
+  handleTouch();
+  animateBlink();
+
+  display.clearDisplay();
+
+  if (currentPet == 0)
+    drawCat();
+  else
+    drawBunny();
+
+  display.display();
+  delay(30);
+}
+
+// ================= TOUCH SWITCH =================
+
+void handleTouch() {
+  bool touchState = digitalRead(TOUCH_PIN);
+
+  // Detect press (edge detection)
+  if (lastTouchState == HIGH && touchState == LOW) {
+    currentPet = !currentPet;   // Switch pet
+    delay(300);  // small debounce
+  }
+
+  lastTouchState = touchState;
+}
+
+// ================= BLINK =================
+
+void animateBlink() {
+  if (millis() - lastBlink > 2500) {
+    eyesClosed = true;
+  }
+  if (millis() - lastBlink > 2700) {
+    eyesClosed = false;
+    lastBlink = millis();
+  }
+}
+
+// ================= CAT =================
+
+void drawCat() {
+
+  // Round Face
+  display.drawCircle(64, 32, 25, WHITE);
+
+  // Ears
+  display.fillTriangle(46, 18, 54, 5, 60, 20, WHITE);
+  display.fillTriangle(82, 18, 74, 5, 68, 20, WHITE);
+
+  // Eyes
+  if (!eyesClosed) {
+    display.fillCircle(55, 30, 4, WHITE);
+    display.fillCircle(73, 30, 4, WHITE);
+  } else {
+    display.drawLine(50, 30, 60, 30, WHITE);
+    display.drawLine(68, 30, 78, 30, WHITE);
+  }
+
+  // Cute nose
+  display.fillCircle(64, 38, 2, WHITE);
+
+  // Smile
+  display.drawLine(64, 40, 64, 44, WHITE);
+  display.drawLine(64, 44, 58, 46, WHITE);
+  display.drawLine(64, 44, 70, 46, WHITE);
+}
+
+// ================= BUNNY =================
+
+void drawBunny() {
+
+  // Round Face
+  display.drawCircle(64, 34, 23, WHITE);
+
+  // Long Ears
+  display.drawRoundRect(50, 3, 10, 25, 5, WHITE);
+  display.drawRoundRect(68, 3, 10, 25, 5, WHITE);
+
+  // Eyes
+  if (!eyesClosed) {
+    display.fillCircle(56, 32, 4, WHITE);
+    display.fillCircle(72, 32, 4, WHITE);
+  } else {
+    display.drawLine(52, 32, 60, 32, WHITE);
+    display.drawLine(68, 32, 76, 32, WHITE);
+  }
+
+  // Nose
+  display.fillCircle(64, 40, 2, WHITE);
+
+  // Bunny teeth
+  display.drawRect(60, 44, 8, 6, WHITE);
+}
